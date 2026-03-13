@@ -43,6 +43,13 @@ def parse_args() -> argparse.Namespace:
         help="Run Part B: order quantity for tomorrow",
     )
     parser.add_argument(
+        "--policy",
+        type=str,
+        choices=["service_first", "waste_first", "balanced"],
+        default="balanced",
+        help="Part C policy mode: service_first (min OOS), waste_first (min waste), balanced",
+    )
+    parser.add_argument(
         "--config",
         type=str,
         default="configs/default.yaml",
@@ -113,19 +120,19 @@ def run_part_a_cli(config_path: str) -> None:
     print(result["predictions"].to_string(index=False))
 
 
-def run_part_b_cli(config_path: str) -> None:
+def run_part_b_cli(config_path: str, policy_mode: str = "balanced") -> None:
     """Run Part B: order quantity for tomorrow."""
     import logging
     from src.pipeline.part_b_runner import run_part_b
     from src.pipeline.data_ingestion_pipeline import DataIngestionConfig
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s [%(name)s] %(message)s")
-    print("[Part B] Order optimization for tomorrow")
+    print(f"[Part B] Order optimization for tomorrow (policy={policy_mode})")
     root = Path(config_path).resolve().parent.parent
     cfg = DataIngestionConfig.from_yaml(config_path)
     if not cfg.data_path or not (root / cfg.data_path).exists():
         cfg.data_path = root / "data_sample"
-    result = run_part_b(config=cfg)
+    result = run_part_b(config=cfg, policy_mode=policy_mode)
     if result["orders"].empty:
         print("[Part B] No orders (no forecasts)")
         return
@@ -145,7 +152,7 @@ def main() -> int:
     elif args.part_a:
         run_part_a_cli(config_path)
     elif args.part_b:
-        run_part_b_cli(config_path)
+        run_part_b_cli(config_path, policy_mode=args.policy)
     else:
         run_pipeline(config_path)
 

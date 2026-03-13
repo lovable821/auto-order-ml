@@ -27,6 +27,8 @@ policy:
   min_order_quantity: 1
   max_order_quantity: 1000
   round_to_pallet: false
+  # Part C: service_first | waste_first | balanced
+  policy_mode: "balanced"
 
 api:
   host: "0.0.0.0"

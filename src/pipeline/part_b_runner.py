@@ -14,7 +14,7 @@ import pandas as pd
 from src.pipeline.part_a_runner import run_part_a
 from src.pipeline.data_ingestion_pipeline import DataIngestionConfig, DataIngestionPipeline
 from src.inventory.order_optimizer import compute_order_recommendations
-from src.policy.rules import OrderPolicy
+from src.policy.rules import OrderPolicy, PolicyMode
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 def run_part_b(
     config: DataIngestionConfig | None = None,
     data_path: str | Path | None = None,
+    policy_mode: PolicyMode | str | None = None,
     **part_a_kwargs: Any,
 ) -> dict[str, Any]:
     """
@@ -54,7 +55,14 @@ def run_part_b(
     if "item_code" in prod.columns and "sku" not in prod.columns:
         prod["sku"] = prod["item_code"]
 
-    policy = OrderPolicy(min_order_quantity=1, max_order_quantity=1000)
+    mode = policy_mode
+    if isinstance(mode, str):
+        try:
+            mode = PolicyMode(mode.lower())
+        except ValueError:
+            mode = PolicyMode.BALANCED
+    mode = mode or PolicyMode.BALANCED
+    policy = OrderPolicy(min_order_quantity=1, max_order_quantity=1000, policy_mode=mode)
     orders = compute_order_recommendations(
         forecasts=forecasts,
         inventory=inv,

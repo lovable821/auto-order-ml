@@ -15,7 +15,7 @@ from typing import Optional
 
 import pandas as pd
 
-from src.policy.rules import OrderPolicy, apply_policy
+from src.policy.rules import OrderPolicy, PolicyMode, apply_policy
 
 logger = logging.getLogger(__name__)
 
@@ -41,14 +41,17 @@ def compute_order_qty(
     min_order: int = 1,
     max_order: int = 1000,
     policy: Optional[OrderPolicy] = None,
+    policy_mode: Optional[PolicyMode] = None,
 ) -> int:
     """
     Compute recommended order quantity for tomorrow.
 
     Logic:
     - Order to cover forecast: need = forecast - stock
-    - Cap by expiration: don't order more than we can sell before expiry
-      (stock + order <= expiration_days * forecast)
+    - Cap by expiration (Part C policy mode):
+      - service_first: ignore cap → minimize OOS
+      - waste_first: strict cap (0.5× effective shelf) → minimize waste
+      - balanced: standard cap (expiration_days × forecast)
     - Apply min/max policy
 
     Args:
@@ -58,6 +61,7 @@ def compute_order_qty(
         min_order: Minimum order quantity.
         max_order: Maximum order quantity.
         policy: Optional OrderPolicy for rounding.
+        policy_mode: Part C mode (service_first, waste_first, balanced).
 
     Returns:
         Recommended order quantity (int).
@@ -67,12 +71,27 @@ def compute_order_qty(
     if need <= 0:
         return 0
 
-    # Cap by expiration: avoid overstock that would expire
-    # Max stock we want = expiration_days * daily_demand (approx)
-    max_stock_after_order = expiration_days * forecast_demand
-    waste_cap = max(0, max_stock_after_order - current_stock)
+    mode = policy_mode or (policy.policy_mode if policy else None) or PolicyMode.BALANCED
 
-    raw_qty = min(need, waste_cap) if expiration_days > 0 else need
+    # Cap by expiration – policy mode adjusts aggressiveness
+    if expiration_days <= 0:
+        raw_qty = need
+    else:
+        if mode == PolicyMode.SERVICE_FIRST:
+            # Minimize OOS: order full need, no waste cap
+            raw_qty = need
+        elif mode == PolicyMode.WASTE_FIRST:
+            # Minimize waste: use 50% of effective shelf life
+            effective_days = expiration_days * 0.5
+            max_stock = effective_days * forecast_demand
+            waste_cap = max(0, max_stock - current_stock)
+            raw_qty = min(need, waste_cap)
+        else:
+            # Balanced: standard cap
+            max_stock_after_order = expiration_days * forecast_demand
+            waste_cap = max(0, max_stock_after_order - current_stock)
+            raw_qty = min(need, waste_cap)
+
     raw_qty = max(0, raw_qty)
 
     if policy:
@@ -144,6 +163,7 @@ def compute_order_recommendations(
             min_order=pol.min_order_quantity,
             max_order=pol.max_order_quantity,
             policy=pol,
+            policy_mode=pol.policy_mode,
         )
         rows.append({
             "store_id": row.get("store_id", "ALL"),
