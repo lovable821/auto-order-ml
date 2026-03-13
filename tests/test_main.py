@@ -1,4 +1,4 @@
-"""Tests for main entrypoint."""
+"""Main entrypoint tests."""
 
 import pytest
 from unittest.mock import patch

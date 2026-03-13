@@ -1,6 +1,4 @@
-"""
-Stage 9: Inventory simulation - run simulation with forecast and policy.
-"""
+"""Stage 9: run inventory sim."""
 
 import logging
 from typing import Optional
@@ -14,21 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_simulation_stage(ctx: PipelineContext) -> PipelineContext:
-    """
-    Run inventory simulation using demand data and forecasts.
-
-    Uses sales_cleaned (or sales_with_features) as demand, forecasts for
-    ordering policy, and config for initial stock, expiration, lead time.
-    When run as part of full pipeline, simulates a representative SKU.
-
-    Args:
-        ctx: Context with sales data, forecasts, policy, ingested_data.
-            Uses config['inventory'] for expiration_days, lead_time_days.
-            Uses config['simulation'] for enable, initial_stock.
-
-    Returns:
-        Updated context with simulation_report populated.
-    """
+    """Run FIFO sim on first SKU. Uses sales as demand, config for stock/expiration."""
     sim_cfg = ctx.config.get("simulation", {})
     if not sim_cfg.get("enable", True):
         logger.info("Simulation disabled in config")

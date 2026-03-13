@@ -1,14 +1,4 @@
-"""
-Forecasto API client for api.forecasto.ru.
-
-All endpoints use POST with token in JSON body (per assignment spec).
-
-Endpoints:
-- Sales:     /sales         -> {token, START_DATE, FINISH_DATE}  (dd.MM.yyyy)
-- Inventory: /inventory/stock -> {token, Date}
-- Products:  /backend/delivery_info/api/v1/GetAll -> {token}
-- Losses:    /loss/getall   -> {token, Date}
-"""
+"""Forecasto API client. POST with token in body. Sales, inventory, products, losses."""
 
 import logging
 import os
@@ -32,7 +22,7 @@ except ImportError:
 
 
 class ForecastoAPIError(Exception):
-    """Raised when Forecasto API returns an error."""
+    """API error."""
 
     def __init__(self, message: str, status_code: int | None = None, response: str | None = None):
         super().__init__(message)
@@ -41,12 +31,7 @@ class ForecastoAPIError(Exception):
 
 
 class ForecastoClient:
-    """
-    Client for Forecasto APIs.
-
-    All methods return pandas DataFrames. Handles HTTP errors and provides
-    configurable authentication via token.
-    """
+    """Calls forecasto API. Returns DataFrames."""
 
     BASE_URL = "https://api.forecasto.ru"
 
@@ -57,22 +42,14 @@ class ForecastoClient:
         timeout: float = 30.0,
         max_retries: int = 3,
     ) -> None:
-        """
-        Initialize the Forecasto API client.
-
-        Args:
-            token: API authentication token. Loads from AUTHORIZATION or FORECAST_API_TOKEN in .env if None.
-            base_url: Base URL. Default: https://api.forecasto.ru
-            timeout: Request timeout in seconds.
-            max_retries: Number of retries for transient failures.
-        """
+        """Token from env if None. base_url, timeout, retries."""
         self._token = token or self._get_token_from_env()
         self._base_url = (base_url or self.BASE_URL).rstrip("/")
         self._timeout = timeout
         self._session = self._build_session(max_retries)
 
     def _build_session(self, max_retries: int) -> requests.Session:
-        """Build a requests session. Token is sent in body per API spec."""
+        """Session with retries. Token goes in body."""
         session = requests.Session()
         session.headers.update(
             {
@@ -92,7 +69,7 @@ class ForecastoClient:
         return session
 
     def _get_token_from_env(self) -> str:
-        """Load token from .env. Request token from client per assignment."""
+        """Token from FORECASTO_TOKEN or FORECAST_API_TOKEN or AUTHORIZATION."""
         for key in ("FORECASTO_TOKEN", "FORECAST_API_TOKEN"):
             token = os.getenv(key, "").strip()
             if token:
@@ -111,12 +88,7 @@ class ForecastoClient:
         params: dict[str, Any] | None = None,
         json: dict[str, Any] | None = None,
     ) -> Any:
-        """
-        Execute HTTP request and return JSON response.
-
-        Raises:
-            ForecastoAPIError: On HTTP errors or invalid responses.
-        """
+        """POST/GET, return JSON. Raises ForecastoAPIError on error."""
         url = f"{self._base_url}{endpoint}"
         try:
             response = self._session.request(
@@ -151,7 +123,7 @@ class ForecastoClient:
             raise ForecastoAPIError(message=str(e)) from e
 
     def _to_dataframe(self, data: Any, default_columns: list[str] | None = None) -> pd.DataFrame:
-        """Convert API response to pandas DataFrame."""
+        """Turn API response into DataFrame."""
         if data is None:
             return pd.DataFrame(columns=default_columns or [])
 
@@ -172,11 +144,7 @@ class ForecastoClient:
         return pd.DataFrame(columns=default_columns or [])
 
     def get_sales(self, start_date: str, end_date: str) -> pd.DataFrame:
-        """
-        Get sales data. Dates in dd.MM.yyyy (e.g. 05.03.2026).
-
-        API returns: Период, Номенклатура, Количество, Сумма, Код, Артикул, Группа.
-        """
+        """Sales. Dates dd.MM.yyyy."""
         logger.debug("Fetching sales from %s to %s", start_date, end_date)
         data = self._request(
             "POST",
@@ -192,10 +160,7 @@ class ForecastoClient:
         return df
 
     def get_inventory(self, date: str) -> pd.DataFrame:
-        """
-        Get stock balance. Date in dd.MM.yyyy.
-        Returns: Date, Code, Name, balance.
-        """
+        """Stock balance. Date dd.MM.yyyy."""
         logger.debug("Fetching inventory for %s", date)
         data = self._request(
             "POST",
@@ -207,9 +172,7 @@ class ForecastoClient:
         return df
 
     def get_products(self) -> pd.DataFrame:
-        """
-        Get product properties. Flattens item_information (ExpirationDays, MinStockLevel, etc.).
-        """
+        """Products. Flattens item_information."""
         logger.debug("Fetching products")
         data = self._request(
             "POST",
@@ -231,9 +194,7 @@ class ForecastoClient:
         return df
 
     def get_losses(self, date: str) -> pd.DataFrame:
-        """
-        Get loss/waste data. Returns: Date, item_id, loss, totalloss, reason.
-        """
+        """Loss/waste. Date dd.MM.yyyy."""
         logger.debug("Fetching losses for %s", date)
         data = self._request(
             "POST",

@@ -1,6 +1,4 @@
-"""
-Stage 7: Order optimization - compute recommended order quantities.
-"""
+"""Stage 7: compute order qty."""
 
 import logging
 from typing import Optional
@@ -14,18 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_order_optimization_stage(ctx: PipelineContext) -> PipelineContext:
-    """
-    Compute recommended order quantity for each store×SKU.
-
-    Uses forecasts, inventory, products, and policy. Policy must be set
-    (run policy stage first or ensure ctx.policy is set).
-
-    Args:
-        ctx: Context with forecasts, ingested_data (inventory, products), policy.
-
-    Returns:
-        Updated context with orders DataFrame.
-    """
+    """Compute order qty per store×SKU from forecasts, inventory, products, policy."""
     forecasts = ctx.forecasts
     if forecasts is None or forecasts.empty:
         logger.warning("No forecasts; skipping order optimization")

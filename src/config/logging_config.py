@@ -11,15 +11,7 @@ def setup_logging(
     log_file: Optional[str | Path] = None,
     format_string: Optional[str] = None,
 ) -> None:
-    """
-    Configure structured logging for the application.
-
-    Args:
-        level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
-        log_file: Optional path to log file. If provided, logs are also written to file.
-        format_string: Optional custom format. Default uses structured format with
-            timestamp, level, logger name, and message.
-    """
+    """Set up logging. level, optional file path, optional format."""
     log_level = getattr(logging, level.upper(), logging.INFO)
     default_format = (
         "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
@@ -56,13 +48,5 @@ def setup_logging(
 
 
 def get_logger(name: str) -> logging.Logger:
-    """
-    Get a logger instance for the given module name.
-
-    Args:
-        name: Module name (typically __name__).
-
-    Returns:
-        Configured logger instance.
-    """
+    """Get logger for module (use __name__)."""
     return logging.getLogger(name)

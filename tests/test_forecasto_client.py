@@ -1,4 +1,4 @@
-"""Tests for ForecastoClient."""
+"""Forecasto client tests."""
 
 import pytest
 import pandas as pd

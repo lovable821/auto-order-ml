@@ -1,4 +1,4 @@
-"""FastAPI application - REST API for forecasts and orders."""
+"""FastAPI. Forecast and orders endpoints (placeholder)."""
 
 from fastapi import FastAPI
 
@@ -11,17 +11,17 @@ app = FastAPI(
 
 @app.get("/health")
 def health() -> dict:
-    """Health check endpoint."""
+    """Health check."""
     return {"status": "ok"}
 
 
 @app.get("/forecast/{product_id}")
 def get_forecast(product_id: str) -> dict:
-    """Get demand forecast for a product. Placeholder."""
+    """Forecast for product. Placeholder."""
     return {"product_id": product_id, "forecast": []}
 
 
 @app.post("/orders")
 def create_orders() -> dict:
-    """Trigger auto-order generation. Placeholder."""
+    """Generate orders. Placeholder."""
     return {"message": "Orders generated"}

@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 
-# Style for technical reports
+# chart style
 plt.rcParams.update({
     "figure.dpi": 150,
     "font.size": 10,
@@ -29,20 +29,7 @@ def plot_actual_vs_predicted(
     ax: Optional[plt.Axes] = None,
     save_path: Optional[Union[str, Path]] = None,
 ) -> plt.Figure:
-    """
-    Plot actual vs predicted demand time series.
-
-    Args:
-        actual: Actual demand values.
-        predicted: Predicted demand values.
-        dates: Optional x-axis labels (dates).
-        title: Chart title.
-        ax: Optional matplotlib axes. If None, creates new figure.
-        save_path: Optional path to save the figure.
-
-    Returns:
-        matplotlib Figure.
-    """
+    """Plot actual vs predicted. Optional dates, title, ax, save_path."""
     actual = np.asarray(actual)
     predicted = np.asarray(predicted)
     n = len(actual)
@@ -80,21 +67,7 @@ def plot_inventory_levels(
     ax: Optional[plt.Axes] = None,
     save_path: Optional[Union[str, Path]] = None,
 ) -> plt.Figure:
-    """
-    Plot inventory levels over time, optionally with demand overlay.
-
-    Args:
-        time_series: DataFrame from simulation or similar (date, stock, demand).
-        date_col: Column name for dates.
-        stock_col: Column name for stock levels (e.g. stock_after, stock_before).
-        demand_col: Optional column for demand overlay. None to omit.
-        title: Chart title.
-        ax: Optional matplotlib axes.
-        save_path: Optional path to save the figure.
-
-    Returns:
-        matplotlib Figure.
-    """
+    """Stock over time, optional demand overlay."""
     if ax is None:
         fig, ax = plt.subplots(figsize=(8, 5))
     else:
@@ -132,21 +105,7 @@ def plot_stockouts_vs_waste(
     ax: Optional[plt.Axes] = None,
     save_path: Optional[Union[str, Path]] = None,
 ) -> plt.Figure:
-    """
-    Plot lost sales (stockouts) and waste quantities over time.
-
-    Args:
-        time_series: DataFrame with lost_sales and waste columns.
-        date_col: Column name for dates.
-        lost_sales_col: Column name for stockouts/lost sales.
-        waste_col: Column name for waste.
-        title: Chart title.
-        ax: Optional matplotlib axes.
-        save_path: Optional path to save the figure.
-
-    Returns:
-        matplotlib Figure.
-    """
+    """Bar chart: lost sales vs waste by day."""
     if ax is None:
         fig, ax = plt.subplots(figsize=(8, 5))
     else:
@@ -182,19 +141,7 @@ def plot_forecast_error_distribution(
     ax: Optional[plt.Axes] = None,
     save_path: Optional[Union[str, Path]] = None,
 ) -> plt.Figure:
-    """
-    Plot distribution of forecast errors (actual - predicted).
-
-    Args:
-        actual: Actual demand values.
-        predicted: Predicted demand values.
-        title: Chart title.
-        ax: Optional matplotlib axes.
-        save_path: Optional path to save the figure.
-
-    Returns:
-        matplotlib Figure.
-    """
+    """Histogram of forecast errors (actual - predicted)."""
     actual = np.asarray(actual)
     predicted = np.asarray(predicted)
     errors = actual - predicted
@@ -225,17 +172,7 @@ def plot_all_summary(
     simulation_report: Optional[object] = None,
     output_dir: Union[str, Path] = "outputs/figures",
 ) -> list[Path]:
-    """
-    Generate all standard plots from Part A and/or simulation results.
-
-    Args:
-        part_a_result: Dict from run_part_a with test_actual, test_predictions.
-        simulation_report: SimulationReport from InventorySimulator.simulate().
-        output_dir: Directory to save figures.
-
-    Returns:
-        List of saved file paths.
-    """
+    """Save all plots to output_dir. Needs part_a_result and/or simulation_report."""
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
     saved_paths = []

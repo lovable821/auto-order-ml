@@ -1,6 +1,4 @@
-"""
-Stage 2: Data cleaning - normalize, deduplicate, remove outliers, fill missing dates.
-"""
+"""Stage 2: clean data."""
 
 import logging
 from typing import Optional
@@ -15,19 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_cleaning_stage(ctx: PipelineContext) -> PipelineContext:
-    """
-    Clean and normalize the sales dataset.
-
-    Uses get_sales_for_forecasting for aggregation, then applies outlier removal
-    and optional missing-date filling. Does NOT apply censoring (that is stage 4).
-
-    Args:
-        ctx: Context with ingested_data. Expects config['preprocessing'] for
-            remove_outliers, fill_missing, etc.
-
-    Returns:
-        Updated context with sales_cleaned populated.
-    """
+    """Aggregate sales, remove outliers (IQR), optionally fill missing dates. No censoring here."""
     if not ctx.ingested_data:
         logger.warning("No ingested data; skipping cleaning stage")
         return ctx

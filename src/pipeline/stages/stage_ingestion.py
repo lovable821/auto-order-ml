@@ -1,6 +1,4 @@
-"""
-Stage 1: Data ingestion - fetch data from API or CSV.
-"""
+"""Stage 1: load data."""
 
 import logging
 from pathlib import Path
@@ -14,16 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_ingestion_stage(ctx: PipelineContext) -> PipelineContext:
-    """
-    Fetch data from API or CSV and load into pipeline context.
-
-    Args:
-        ctx: Pipeline context with config. Expects config['pipeline'] or
-            config['data_source'], config['data_path'], etc.
-
-    Returns:
-        Updated context with ingested_data populated.
-    """
+    """Load data from API or CSV, put in ctx.ingested_data."""
     cfg = _build_ingestion_config(ctx)
     pipeline = DataIngestionPipeline(cfg)
     data = pipeline.run()
@@ -39,7 +28,7 @@ def run_ingestion_stage(ctx: PipelineContext) -> PipelineContext:
 
 
 def _build_ingestion_config(ctx: PipelineContext) -> DataIngestionConfig:
-    """Build DataIngestionConfig from pipeline context."""
+    """Config from ctx, resolve data path."""
     cfg = ctx.config
     # Project root: stages -> pipeline -> src -> project
     root = Path(__file__).resolve().parent.parent.parent.parent

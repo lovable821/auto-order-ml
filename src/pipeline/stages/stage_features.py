@@ -1,6 +1,4 @@
-"""
-Stage 3: Feature engineering - build ML features (lags, rolling stats, calendar).
-"""
+"""Stage 3: build features."""
 
 import logging
 from typing import Optional
@@ -14,19 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_features_stage(ctx: PipelineContext) -> PipelineContext:
-    """
-    Build forecasting features for the sales dataset.
-
-    Adds lag features, rolling mean/std, and calendar features.
-    Requires sales_cleaned (or sales_corrected if censoring was applied first).
-
-    Args:
-        ctx: Context with sales_cleaned or sales_corrected. Uses config['features']
-            for lookback_days, lag_days, rolling_windows.
-
-    Returns:
-        Updated context with sales_with_features and feature_columns populated.
-    """
+    """Add lags, rolling mean/std, calendar. Uses sales_cleaned or sales_corrected."""
     sales = ctx.sales_corrected if ctx.sales_corrected is not None else ctx.sales_cleaned
     if sales is None or sales.empty:
         logger.warning("No sales data; skipping feature engineering")

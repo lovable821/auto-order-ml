@@ -1,8 +1,4 @@
-"""
-Feature engineering for demand forecasting.
-
-Part A Step 3: Lags, rolling stats, calendar features for store×SKU.
-"""
+"""Lags, rolling mean/std, calendar features for store×SKU demand."""
 
 import logging
 from typing import Optional
@@ -22,14 +18,7 @@ def build_features(
     lag_days: tuple[int, ...] = (1, 7, 14),
     rolling_windows: tuple[int, ...] = (7, 14),
 ) -> pd.DataFrame:
-    """
-    Build forecasting features for store×SKU demand.
-
-    Features:
-    - Lag features (demand t-1, t-7, t-14)
-    - Rolling mean/std (7d, 14d)
-    - Calendar: day_of_week, month, day_of_month
-    """
+    """Lags, rolling mean/std, day_of_week, month, etc."""
     if df.empty:
         return df
 
@@ -69,7 +58,7 @@ def get_feature_columns(
     lag_days: tuple[int, ...] = (1, 7, 14),
     rolling_windows: tuple[int, ...] = (7, 14),
 ) -> list[str]:
-    """Return list of feature column names for model input."""
+    """Column names for model (must match build_features output)."""
     features = []
     for lag in lag_days:
         features.append(f"lag_{lag}")

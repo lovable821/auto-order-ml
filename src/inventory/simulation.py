@@ -1,4 +1,4 @@
-"""Inventory simulation - FIFO stock, expiration, order policy."""
+"""FIFO sim. Batches expire. Orders use policy."""
 
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional, Union
@@ -11,7 +11,7 @@ from src.policy.rules import OrderPolicy, PolicyMode
 
 @dataclass
 class SimulationReport:
-    """Output of an inventory simulation run."""
+    """Sim output. metrics + time_series."""
 
     metrics: dict[str, float] = field(default_factory=dict)
     time_series: pd.DataFrame = field(default_factory=pd.DataFrame)
@@ -26,7 +26,7 @@ class SimulationReport:
 def _to_dataframe(
     demand_ts: Union[pd.DataFrame, list[tuple[Any, float]], dict[Any, float]]
 ) -> pd.DataFrame:
-    """Normalize demand time series to DataFrame with columns [date, demand]."""
+    """Turn demand input into [date, demand] DataFrame."""
     if isinstance(demand_ts, pd.DataFrame):
         df = demand_ts.copy()
         demand_col = next(
@@ -53,7 +53,7 @@ def _get_forecast(
     forecast: Union[float, pd.Series, dict, Callable[[Any], float]],
     date: Any,
 ) -> float:
-    """Resolve forecast for a given date."""
+    """Get forecast value for date (handles constant, dict, callable)."""
     if callable(forecast):
         return float(forecast(date))
     if isinstance(forecast, (int, float)):
@@ -64,12 +64,7 @@ def _get_forecast(
 
 
 class InventorySimulator:
-    """
-    Simulates inventory behavior over time for a single SKU.
-
-    Uses FIFO consumption and batch-based expiration tracking.
-    Orders are computed daily using the ML-driven ordering policy.
-    """
+    """Day-by-day FIFO sim. Batches expire by shelf life. Orders use our policy."""
 
     def __init__(
         self,
@@ -81,19 +76,7 @@ class InventorySimulator:
         *,
         lead_time_days: int = 0,
     ):
-        """
-        Initialize the simulator.
-
-        Args:
-            demand_ts: Actual demand time series. DataFrame with [date, demand],
-                or list of (date, demand), or dict date -> demand.
-            forecast_demand: Predicted demand. Constant float, or per-day Series/dict,
-                or callable(date) -> float.
-            initial_stock: Starting inventory level.
-            expiration_days: Shelf life in days. Stock older than this becomes waste.
-            policy: Ordering policy (min/max, policy_mode). Default: balanced.
-            lead_time_days: Days between order placement and arrival. Default 0.
-        """
+        """demand_ts: date->demand. forecast: constant or per-day. lead_time_days: order delay."""
         self.demand_df = _to_dataframe(demand_ts)
         self.demand_df["date"] = pd.to_datetime(self.demand_df["date"])
         self.demand_df = self.demand_df.sort_values("date").reset_index(drop=True)
@@ -116,10 +99,7 @@ class InventorySimulator:
         return sum(qty for qty, _ in self._batches)
 
     def _consume(self, amount: float) -> float:
-        """
-        Consume amount from stock (FIFO: oldest batches first).
-        Returns actual quantity consumed.
-        """
+        """FIFO consume. Returns actual consumed."""
         remaining = amount
         new_batches = []
         for qty, days in self._batches:
@@ -155,12 +135,7 @@ class InventorySimulator:
         demand: float,
         forecast: float,
     ) -> dict[str, Any]:
-        """
-        Execute one day of the simulation.
-
-        Returns dict with: demand, actual_sales, lost_sales, waste, stock_before,
-        stock_after, order_placed, order_arrived.
-        """
+        """One day: age, arrive, consume, order."""
         # 1. Age batches and collect waste
         waste = self._age_batches()
 
@@ -214,12 +189,7 @@ class InventorySimulator:
         }
 
     def simulate(self) -> SimulationReport:
-        """
-        Run the full simulation over the demand time series.
-
-        Returns:
-            SimulationReport with metrics and daily time series.
-        """
+        """Run sim over all days. Returns report with metrics and daily series."""
         rows = []
         for _, row in self.demand_df.iterrows():
             date = row["date"]
@@ -233,23 +203,7 @@ class InventorySimulator:
         return SimulationReport(metrics=metrics, time_series=ts)
 
     def calculate_metrics(self, time_series: pd.DataFrame) -> dict[str, float]:
-        """
-        Compute simulation metrics from the time series.
-
-        Metrics:
-            - total_sales: Sum of actual sales
-            - lost_sales: Sum of unmet demand (stockouts)
-            - waste_quantity: Sum of expired/wasted stock
-            - service_level: Fraction of demand satisfied (1 - lost_sales / total_demand)
-            - inventory_turnover: total_sales / avg_inventory
-
-        Args:
-            time_series: DataFrame from simulate() with columns demand, actual_sales,
-                lost_sales, waste, stock_before, stock_after.
-
-        Returns:
-            Dict of metric name -> value.
-        """
+        """Compute service level, lost sales, waste, turnover from sim output."""
 
         total_demand = time_series["demand"].sum()
         total_sales = time_series["actual_sales"].sum()

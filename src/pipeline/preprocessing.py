@@ -1,8 +1,4 @@
-"""
-Cleaning and preprocessing for demand forecasting.
-
-Part A Step 2: Handles censoring, outliers, missing values.
-"""
+"""Censoring, outliers, missing dates for demand data."""
 
 import logging
 from typing import Optional
@@ -21,11 +17,7 @@ def handle_demand_censoring(
     date_col: str = "date",
     store_col: str = "store_id",
 ) -> pd.DataFrame:
-    """
-    Flag demand censoring when stock was zero (stockouts).
-
-    When balance=0, observed sales <= true demand. Adds 'censored' column.
-    """
+    """Flag days where stock was 0. Adds censored col."""
     if df.empty or inventory.empty:
         return df
 
@@ -63,11 +55,7 @@ def remove_outliers(
     method: str = "iqr",
     factor: float = 1.5,
 ) -> pd.DataFrame:
-    """
-    Remove or cap outliers in demand.
-
-    method: "iqr" (interquartile range) or "zscore"
-    """
+    """Drop outliers. method: iqr or zscore."""
     if df.empty or demand_col not in df.columns:
         return df
 
@@ -103,9 +91,7 @@ def fill_missing_dates(
     store_col: Optional[str] = "store_id",
     fill_value: float = 0,
 ) -> pd.DataFrame:
-    """
-    Fill missing (store, sku, date) combinations with fill_value (e.g. 0 for no sale).
-    """
+    """Fill missing store×sku×date with fill_value (default 0)."""
     if df.empty:
         return df
 
@@ -140,16 +126,7 @@ def preprocess_sales(
     remove_outliers_flag: bool = True,
     fill_missing: bool = False,
 ) -> pd.DataFrame:
-    """
-    Full preprocessing pipeline for sales/demand data.
-
-    Args:
-        df: Sales with store_id, sku, date, demand.
-        inventory: Optional inventory for censoring.
-        handle_censoring: Add censored flag from stockouts.
-        remove_outliers_flag: Remove IQR outliers.
-        fill_missing: Fill missing dates with 0.
-    """
+    """Censoring + outliers + optional missing-date fill."""
     if df.empty:
         return df
 

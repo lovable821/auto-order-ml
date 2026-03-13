@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
-"""
-Generate all visualization charts for demand forecasting and inventory simulation.
-
-Usage:
-    python scripts/run_visualizations.py
-    python scripts/run_visualizations.py --output outputs/figures
-"""
+"""Generate all viz charts. --output for dir."""
 
 import argparse
 import sys

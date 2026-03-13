@@ -1,6 +1,4 @@
-"""
-Stage 5: Model training - train demand forecasting model.
-"""
+"""Stage 5: train model."""
 
 import logging
 from typing import Any, Optional
@@ -17,19 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_training_stage(ctx: PipelineContext) -> PipelineContext:
-    """
-    Train the demand forecasting model.
-
-    Uses sales_with_features. Splits by time, trains LightGBM, evaluates on test set.
-    Applies random seed from config for reproducibility.
-
-    Args:
-        ctx: Context with sales_with_features, feature_columns. Uses config['models']
-            and config['reproducibility']['random_seed'].
-
-    Returns:
-        Updated context with model and metrics populated.
-    """
+    """Train LightGBM on sales_with_features. Time split, eval on test. Seed from config."""
     sales = ctx.sales_with_features
     if sales is None or sales.empty or len(sales) < 10:
         logger.warning("Insufficient data for training; skipping")
@@ -77,7 +63,7 @@ def run_training_stage(ctx: PipelineContext) -> PipelineContext:
 
 
 def _apply_seed(ctx: PipelineContext) -> None:
-    """Apply random seed from config for reproducibility."""
+    """Set random seeds from config."""
     seed = _get_seed(ctx)
     if seed is not None:
         np.random.seed(seed)
@@ -89,5 +75,5 @@ def _apply_seed(ctx: PipelineContext) -> None:
 
 
 def _get_seed(ctx: PipelineContext) -> Optional[int]:
-    """Get random seed from config."""
+    """Read seed from config.reproducibility.random_seed."""
     return ctx.config.get("reproducibility", {}).get("random_seed")

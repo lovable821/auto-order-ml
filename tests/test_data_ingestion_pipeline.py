@@ -1,4 +1,4 @@
-"""Tests for DataIngestionPipeline."""
+"""Data ingestion pipeline tests."""
 
 import pytest
 from pathlib import Path

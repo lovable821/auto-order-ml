@@ -1,16 +1,5 @@
 #!/usr/bin/env python3
-"""
-Retail Demand Forecasting & Auto-Order System.
-
-Usage:
-    python main.py                    # Run full pipeline (ingestion -> simulation)
-    python main.py --api              # Start REST API server
-    python main.py --train            # Train models only (runs pipeline through training)
-    python main.py --part-a           # Part A: demand forecast for tomorrow
-    python main.py --part-b           # Part B: order quantity for tomorrow
-    python main.py --simulate         # Inventory simulation demo
-    python main.py --visualize        # Generate visualization charts
-"""
+"""CLI: full pipeline, --api, --train, --part-a, --part-b, --simulate, --visualize."""
 
 import argparse
 import sys

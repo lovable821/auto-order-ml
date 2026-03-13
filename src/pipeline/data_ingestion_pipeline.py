@@ -1,9 +1,4 @@
-"""
-Data ingestion pipeline - orchestrates loading from API or CSV.
-
-Part A Step 1: Unified pipeline for demand forecasting data.
-Produces: sales, inventory, products, losses with consistent schema.
-"""
+"""Load from API or CSV. Returns sales, inventory, products, losses."""
 
 import logging
 from dataclasses import dataclass
@@ -24,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class DataIngestionConfig:
-    """Configuration for data ingestion."""
+    """data_source, data_path, dates, token."""
 
     data_source: Literal["api", "csv"] = "csv"
     data_path: str | Path | None = None
@@ -53,23 +48,13 @@ class DataIngestionConfig:
 
 
 class DataIngestionPipeline:
-    """
-    Data ingestion pipeline for Part A.
-
-    Loads sales, inventory, products, losses from API or CSV.
-    Falls back to CSV if API fails.
-    """
+    """Load from API or CSV. Falls back to CSV if API fails."""
 
     def __init__(self, config: DataIngestionConfig | None = None):
         self.config = config or DataIngestionConfig()
 
     def run(self) -> IngestedData:
-        """
-        Execute ingestion pipeline.
-
-        Returns:
-            IngestedData with sales, inventory, products, losses.
-        """
+        """Load and return sales, inventory, products, losses."""
         logger.info("Running data ingestion pipeline (source=%s)", self.config.data_source)
 
         if self.config.data_source == "api":
@@ -95,11 +80,7 @@ class DataIngestionPipeline:
         return load_all_data_from_csv(path)
 
     def get_sales_for_forecasting(self, data: IngestedData) -> pd.DataFrame:
-        """
-        Get sales DataFrame ready for forecasting (store × SKU × date).
-
-        Aggregates quantity by (store_id, sku, date). Uses 'ALL' as store if missing.
-        """
+        """Aggregate by store×sku×date. Uses ALL if no store_id."""
         sales = data["sales"].copy()
         if sales.empty:
             return sales

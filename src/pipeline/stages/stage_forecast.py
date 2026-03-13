@@ -1,6 +1,4 @@
-"""
-Stage 6: Forecast generation - predict tomorrow's demand.
-"""
+"""Stage 6: predict tomorrow."""
 
 import logging
 from typing import Optional
@@ -13,17 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_forecast_stage(ctx: PipelineContext) -> PipelineContext:
-    """
-    Generate tomorrow's demand forecast per store×SKU.
-
-    Uses the trained model and sales_with_features (last row per group).
-
-    Args:
-        ctx: Context with model and sales_with_features.
-
-    Returns:
-        Updated context with forecasts DataFrame (store_id, sku, predicted_demand).
-    """
+    """Predict tomorrow per store×SKU. Uses last row per group from sales_with_features."""
     model = ctx.model
     sales = ctx.sales_with_features
     if model is None or sales is None or sales.empty:

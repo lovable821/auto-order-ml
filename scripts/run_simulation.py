@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""
-Demo: Run inventory simulation for retail auto-replenishment.
-
-Demonstrates how an ML-driven ordering policy performs in realistic retail conditions.
-"""
+"""Run inventory sim demo."""
 
 import argparse
 import sys

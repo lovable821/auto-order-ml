@@ -1,4 +1,4 @@
-"""Pytest configuration and shared fixtures."""
+"""Pytest config and fixtures."""
 
 import pytest
 from pathlib import Path

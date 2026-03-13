@@ -1,11 +1,4 @@
-"""ForecastAPI client for forecastapi.com.
-
-Usage:
-    from src.api.forecastapi_client import ForecastAPIClient, get_forecast_token
-
-    client = ForecastAPIClient(token=get_forecast_token())
-    forecast = client.get_forecast(identifier="SKU-123", data=[...], periods=6, frequency="M")
-"""
+"""ForecastAPI client (forecastapi.com)."""
 
 import logging
 import os
@@ -24,16 +17,7 @@ load_dotenv(_env_path)
 
 
 def get_forecast_token() -> str:
-    """
-    Load ForecastAPI token from environment.
-
-    Supports:
-    - FORECAST_API_TOKEN: raw token
-    - AUTHORIZATION: full header (e.g. "Bearer eyJ...") - extracts token after "Bearer "
-
-    Raises:
-        ValueError: If no token found in env.
-    """
+    """Token from FORECAST_API_TOKEN or AUTHORIZATION (Bearer ...)."""
     token = os.getenv("FORECAST_API_TOKEN", "").strip()
     if token:
         return token
@@ -48,7 +32,7 @@ def get_forecast_token() -> str:
 
 
 class ForecastAPIError(Exception):
-    """Raised when ForecastAPI returns an error."""
+    """API error."""
 
     def __init__(
         self,
@@ -62,11 +46,7 @@ class ForecastAPIError(Exception):
 
 
 class ForecastAPIClient:
-    """
-    Client for ForecastAPI (forecastapi.com).
-
-    Generates forecasts from time series data via POST /forecast.
-    """
+    """Forecast from time series. POST /forecast."""
 
     BASE_URL = "https://forecastapi.com/v2"
 
@@ -76,14 +56,7 @@ class ForecastAPIClient:
         base_url: str | None = None,
         timeout: float = 30.0,
     ) -> None:
-        """
-        Initialize the ForecastAPI client.
-
-        Args:
-            token: API token. If None, loads from env (FORECAST_API_TOKEN or AUTHORIZATION).
-            base_url: Override base URL. Default: https://forecastapi.com/v2
-            timeout: Request timeout in seconds.
-        """
+        """Token from env if None."""
         self._token = token or get_forecast_token()
         self._base_url = (base_url or self.BASE_URL).rstrip("/")
         self._timeout = timeout
@@ -105,20 +78,7 @@ class ForecastAPIClient:
         data_type: str = "sales",
         model: str = "standard",
     ) -> dict[str, Any]:
-        """
-        Generate forecast from time series data.
-
-        Args:
-            identifier: Unique ID for the series (e.g. SKU, product_id).
-            data: List of {"date": "YYYY-MM-DD", "value": float}.
-            periods: Number of forecast periods (1-24).
-            frequency: D=Daily, W=Weekly, M=Monthly, Q=Quarterly, Y=Yearly.
-            data_type: "sales", "demand", "inventory", etc.
-            model: "standard", "advanced", or "ensemble".
-
-        Returns:
-            Dict with forecast, method, confidence, analysis.
-        """
+        """Forecast from data. identifier, data [{date, value}], periods, frequency."""
         url = f"{self._base_url}/forecast"
         payload = {
             "identifier": identifier,
@@ -153,7 +113,7 @@ class ForecastAPIClient:
             raise ForecastAPIError(message=str(e)) from e
 
     def forecast_to_dataframe(self, result: dict[str, Any]) -> pd.DataFrame:
-        """Convert forecast response to pandas DataFrame."""
+        """Forecast response -> DataFrame."""
         forecast = result.get("forecast", [])
         if not forecast:
             return pd.DataFrame(columns=["date", "value", "lower", "upper"])

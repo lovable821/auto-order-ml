@@ -1,10 +1,4 @@
-"""
-Data ingestion module - load and clean data from CSV or API.
-
-Loads data via CSV files or ForecastoClient, normalizes column names to English,
-parses dates, unifies SKU field, and removes duplicates.
-Uses ForecastAPIClient (forecastapi.com) for real forecasts.
-"""
+"""Load data from CSV or Forecasto API. Normalize columns, parse dates, unify SKU."""
 
 import logging
 from pathlib import Path
@@ -16,8 +10,7 @@ from src.api.forecasto_client import ForecastoClient
 
 logger = logging.getLogger(__name__)
 
-# Column name mappings: non-English / variant -> English
-# Forecasto API (api.forecasto.ru) Russian fields included
+# map foreign/variant column names to english (forecasto uses russian)
 COLUMN_MAPPINGS: dict[str, str] = {
     # Date
     "datum": "date",
@@ -70,7 +63,7 @@ COLUMN_MAPPINGS: dict[str, str] = {
 
 
 def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """Rename columns to English using mapping."""
+    """Rename cols to english via mapping."""
     if df.empty:
         return df
     rename = {}
@@ -90,7 +83,7 @@ def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _parse_dates(df: pd.DataFrame, date_columns: list[str]) -> pd.DataFrame:
-    """Convert date columns to datetime."""
+    """Parse date cols to datetime."""
     if df.empty:
         return df
     for col in date_columns:
@@ -104,10 +97,7 @@ def _parse_dates(df: pd.DataFrame, date_columns: list[str]) -> pd.DataFrame:
 
 
 def _unify_sku(df: pd.DataFrame, table: str) -> pd.DataFrame:
-    """
-    Unify SKU field across tables.
-    Ensures 'sku' column exists; uses product_id if sku is missing.
-    """
+    """Make sure sku col exists (use product_id if missing)."""
     if df.empty:
         return df
     df = df.copy()
@@ -126,7 +116,7 @@ def _unify_sku(df: pd.DataFrame, table: str) -> pd.DataFrame:
 
 
 def _remove_duplicates(df: pd.DataFrame, table: str) -> pd.DataFrame:
-    """Remove duplicate rows."""
+    """Drop dupes."""
     if df.empty:
         return df
     before = len(df)
@@ -138,7 +128,7 @@ def _remove_duplicates(df: pd.DataFrame, table: str) -> pd.DataFrame:
 
 
 def _clean_sales(df: pd.DataFrame) -> pd.DataFrame:
-    """Clean sales DataFrame."""
+    """Normalize, parse dates, unify sku, dedupe."""
     df = _normalize_columns(df)
     df = _parse_dates(df, ["date"])
     df = _unify_sku(df, "sales")
@@ -147,7 +137,7 @@ def _clean_sales(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _clean_inventory(df: pd.DataFrame) -> pd.DataFrame:
-    """Clean inventory DataFrame."""
+    """Same as sales but for inventory."""
     df = _normalize_columns(df)
     df = _unify_sku(df, "inventory")
     df = _remove_duplicates(df, "inventory")
@@ -155,7 +145,7 @@ def _clean_inventory(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _clean_products(df: pd.DataFrame) -> pd.DataFrame:
-    """Clean products DataFrame. Unify sku/product_id."""
+    """Normalize, unify sku/product_id."""
     df = _normalize_columns(df)
     # Products: product_id or artikelnummer may be the SKU
     if "product_id" in df.columns and "sku" not in df.columns:
@@ -169,7 +159,7 @@ def _clean_products(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _clean_losses(df: pd.DataFrame) -> pd.DataFrame:
-    """Clean losses DataFrame."""
+    """Same cleanup for losses."""
     df = _normalize_columns(df)
     df = _parse_dates(df, ["date"])
     df = _unify_sku(df, "losses")
@@ -178,7 +168,7 @@ def _clean_losses(df: pd.DataFrame) -> pd.DataFrame:
 
 
 class IngestedData(TypedDict):
-    """Typed dict for load_all_data return value."""
+    """sales, inventory, products, losses."""
 
     sales: pd.DataFrame
     inventory: pd.DataFrame
@@ -187,17 +177,7 @@ class IngestedData(TypedDict):
 
 
 def load_all_data_from_csv(data_path: str | Path) -> IngestedData:
-    """
-    Load and clean all data from CSV files.
-
-    Expects: sales.csv, inventory.csv, products.csv, losses.csv in data_path.
-
-    Args:
-        data_path: Directory containing CSV files.
-
-    Returns:
-        Dict with keys: sales, inventory, products, losses.
-    """
+    """Load sales, inventory, products, losses from CSV dir. Cleans each."""
     path = Path(data_path)
     logger.info("Loading data from CSV: %s", path)
 
@@ -230,20 +210,7 @@ def load_all_data(
     data_source: str = "csv",
     data_path: str | Path | None = None,
 ) -> IngestedData:
-    """
-    Load and clean all data from CSV or Forecasto API.
-
-    Args:
-        token: API token (required when data_source="api"). Loads from .env when None.
-        start_date: Start date for sales (required when data_source="api").
-        end_date: End date for sales (required when data_source="api").
-        base_url: Optional API base URL override.
-        data_source: "csv" (default) or "api".
-        data_path: Path to CSV directory. Default: data_sample/ or data/.
-
-    Returns:
-        Dict with keys: sales, inventory, products, losses.
-    """
+    """Load from CSV or API. API needs token, start/end dates."""
     if data_source == "csv":
         root = Path(__file__).resolve().parent.parent.parent
         path = Path(data_path) if data_path else root / "data_sample"

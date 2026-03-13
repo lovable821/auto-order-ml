@@ -1,13 +1,4 @@
-"""
-Order optimization logic - Part B.
-
-Computes recommended order_qty for tomorrow given:
-- Demand forecast
-- Current stock
-- Expiration days (shelf life)
-
-Balances OOS (out-of-stock) vs waste (overstock/expiry).
-"""
+"""Order qty for tomorrow from forecast, stock, shelf life. Balances stockouts vs waste."""
 
 import logging
 from dataclasses import dataclass
@@ -43,29 +34,7 @@ def compute_order_qty(
     policy: Optional[OrderPolicy] = None,
     policy_mode: Optional[PolicyMode] = None,
 ) -> int:
-    """
-    Compute recommended order quantity for tomorrow.
-
-    Logic:
-    - Order to cover forecast: need = forecast - stock
-    - Cap by expiration (Part C policy mode):
-      - service_first: ignore cap → minimize OOS
-      - waste_first: strict cap (0.5× effective shelf) → minimize waste
-      - balanced: standard cap (expiration_days × forecast)
-    - Apply min/max policy
-
-    Args:
-        forecast_demand: Predicted demand for tomorrow.
-        current_stock: Current inventory balance.
-        expiration_days: Shelf life in days (from product properties).
-        min_order: Minimum order quantity.
-        max_order: Maximum order quantity.
-        policy: Optional OrderPolicy for rounding.
-        policy_mode: Part C mode (service_first, waste_first, balanced).
-
-    Returns:
-        Recommended order quantity (int).
-    """
+    """Order to cover forecast, capped by expiration. Policy mode sets how strict the cap is."""
     need = forecast_demand - current_stock
 
     if need <= 0:
@@ -109,18 +78,7 @@ def compute_order_recommendations(
     *,
     policy: Optional[OrderPolicy] = None,
 ) -> pd.DataFrame:
-    """
-    Compute order_qty for each store×SKU.
-
-    Args:
-        forecasts: DataFrame with store_id, sku, predicted_demand.
-        inventory: DataFrame with Code/sku, balance.
-        products: DataFrame with item_code/sku, ExpirationDays.
-
-    Returns:
-        DataFrame with store_id, sku, forecast_demand, current_stock,
-        expiration_days, order_qty.
-    """
+    """Order qty per store×SKU. Needs forecasts, inventory (sku, balance), products (sku, ExpirationDays)."""
     if forecasts.empty:
         return pd.DataFrame()
 

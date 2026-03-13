@@ -1,6 +1,4 @@
-"""
-Stage 4: Censored demand correction - flag and adjust demand when stock was zero.
-"""
+"""Stage 4: censored demand."""
 
 import logging
 from typing import Optional
@@ -14,21 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_censoring_stage(ctx: PipelineContext) -> PipelineContext:
-    """
-    Apply censored demand correction.
-
-    Flags observations where stock was zero (stockouts) and optionally adjusts
-    demand. When censored=True, observed sales <= true demand.
-    Current implementation: adds censored flag; censored rows can be excluded
-    or demand can be imputed (e.g. use rolling mean for censored).
-
-    Args:
-        ctx: Context with sales_cleaned and ingested_data. Uses config['censoring']
-            for enable, correction_method.
-
-    Returns:
-        Updated context with sales_corrected populated.
-    """
+    """Flag stockout days (balance=0). Can exclude or impute those rows."""
     sales = ctx.sales_cleaned
     if sales is None or sales.empty:
         logger.warning("No sales data; skipping censoring stage")
@@ -71,11 +55,7 @@ def run_censoring_stage(ctx: PipelineContext) -> PipelineContext:
 
 
 def _impute_censored_demand(df: pd.DataFrame, window: int = 7) -> pd.DataFrame:
-    """
-    Impute demand for censored rows using rolling mean.
-
-    For censored rows, replace demand with rolling mean of recent uncensored demand.
-    """
+    """Replace censored demand with rolling mean of recent uncensored."""
     df = df.copy()
     group_cols = [c for c in ["store_id", "sku"] if c in df.columns] or ["sku"]
     for (_, group), idx in df.groupby(group_cols).groups.items():

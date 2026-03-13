@@ -1,4 +1,4 @@
-"""Evaluation - metrics and visualization for forecasting and inventory."""
+"""Visualization and metrics."""
 
 from src.evaluation.visualization import (
     plot_actual_vs_predicted,

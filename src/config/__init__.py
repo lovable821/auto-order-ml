@@ -1,4 +1,4 @@
-"""Configuration and logging for the demand forecasting pipeline."""
+"""Config and logging."""
 
 from src.config.logging_config import setup_logging, get_logger
 

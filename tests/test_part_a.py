@@ -1,4 +1,4 @@
-"""Tests for Part A (demand forecast) pipeline."""
+"""Part A tests."""
 
 import pytest
 import numpy as np

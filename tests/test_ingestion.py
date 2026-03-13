@@ -1,4 +1,4 @@
-"""Tests for data ingestion module."""
+"""Ingestion tests."""
 
 import pandas as pd
 import pytest

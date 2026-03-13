@@ -1,6 +1,4 @@
-"""
-Stage 8: Policy adjustment - load and configure ordering policy from config.
-"""
+"""Stage 8: load policy from config."""
 
 import logging
 from typing import Optional
@@ -12,19 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_policy_stage(ctx: PipelineContext) -> PipelineContext:
-    """
-    Load ordering policy from config.
-
-    Policy is applied during order optimization (stage 7). This stage prepares
-    the OrderPolicy object from config['policy'].
-
-    Args:
-        ctx: Context with config. Expects config['policy'] with min_order_quantity,
-            max_order_quantity, policy_mode, round_to_pallet, pallet_size.
-
-    Returns:
-        Updated context with policy populated.
-    """
+    """Load OrderPolicy from config (mode, min/max qty, etc). Used by order optimization."""
     policy_cfg = ctx.config.get("policy", {})
     mode_str = policy_cfg.get("policy_mode", "balanced")
     try:
