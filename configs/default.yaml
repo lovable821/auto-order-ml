@@ -1,0 +1,31 @@
+# Retail Demand Forecasting & Auto-Order System - Default Configuration
+
+pipeline:
+  data_path: "data/raw"
+  output_path: "data/processed"
+  batch_size: 1000
+
+features:
+  lookback_days: 30
+  target_column: "demand"
+  categorical_cols: ["product_id", "store_id", "category"]
+
+models:
+  type: "prophet"  # prophet, arima, xgboost
+  train_test_split: 0.8
+  retrain_interval_days: 7
+
+inventory:
+  safety_stock_days: 7
+  lead_time_days: 3
+  reorder_point_multiplier: 1.2
+
+policy:
+  min_order_quantity: 1
+  max_order_quantity: 1000
+  round_to_pallet: false
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 4
