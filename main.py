@@ -55,6 +55,11 @@ def parse_args() -> argparse.Namespace:
         help="Run inventory simulation demo",
     )
     parser.add_argument(
+        "--visualize",
+        action="store_true",
+        help="Generate all visualization charts (Part A + simulation)",
+    )
+    parser.add_argument(
         "--config",
         type=str,
         default="configs/default.yaml",
@@ -151,6 +156,13 @@ def run_simulation_cli() -> None:
     sim_main()
 
 
+def run_visualize_cli() -> None:
+    """Generate all visualization charts."""
+    import subprocess
+    script = PROJECT_ROOT / "scripts" / "run_visualizations.py"
+    subprocess.run([sys.executable, str(script)], check=True)
+
+
 def main() -> int:
     """Main entrypoint."""
     args = parse_args()
@@ -166,6 +178,8 @@ def main() -> int:
         run_part_b_cli(config_path, policy_mode=args.policy)
     elif args.simulate:
         run_simulation_cli()
+    elif args.visualize:
+        run_visualize_cli()
     else:
         run_pipeline(config_path)
 

@@ -5,6 +5,7 @@ Demo: Run inventory simulation for retail auto-replenishment.
 Demonstrates how an ML-driven ordering policy performs in realistic retail conditions.
 """
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -51,6 +52,11 @@ def main() -> None:
     print(f"Expiration: {expiration_days} days")
     print()
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--plot", "-p", action="store_true", help="Save visualization plots")
+    parser.add_argument("--output", "-o", default="outputs/figures", help="Output directory for plots")
+    args = parser.parse_args()
+
     policy = OrderPolicy(policy_mode=PolicyMode.BALANCED)
     sim = InventorySimulator(
         demand_ts=demand_ts,
@@ -62,6 +68,14 @@ def main() -> None:
     )
 
     report = sim.simulate()
+
+    if args.plot:
+        from src.evaluation.visualization import plot_inventory_levels, plot_stockouts_vs_waste
+        out = Path(args.output)
+        out.mkdir(parents=True, exist_ok=True)
+        plot_inventory_levels(report.time_series, save_path=out / "inventory_levels.png")
+        plot_stockouts_vs_waste(report.time_series, save_path=out / "stockouts_vs_waste.png")
+        print(f"Plots saved to {out}")
 
     print("Metrics:")
     for k, v in report.metrics.items():
