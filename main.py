@@ -50,6 +50,11 @@ def parse_args() -> argparse.Namespace:
         help="Part C policy mode: service_first (min OOS), waste_first (min waste), balanced",
     )
     parser.add_argument(
+        "--simulate",
+        action="store_true",
+        help="Run inventory simulation demo",
+    )
+    parser.add_argument(
         "--config",
         type=str,
         default="configs/default.yaml",
@@ -140,6 +145,12 @@ def run_part_b_cli(config_path: str, policy_mode: str = "balanced") -> None:
     print(result["orders"].to_string(index=False))
 
 
+def run_simulation_cli() -> None:
+    """Run inventory simulation demo."""
+    from scripts.run_simulation import main as sim_main
+    sim_main()
+
+
 def main() -> int:
     """Main entrypoint."""
     args = parse_args()
@@ -153,6 +164,8 @@ def main() -> int:
         run_part_a_cli(config_path)
     elif args.part_b:
         run_part_b_cli(config_path, policy_mode=args.policy)
+    elif args.simulate:
+        run_simulation_cli()
     else:
         run_pipeline(config_path)
 
