@@ -7,6 +7,7 @@ from src.pipeline.data_ingestion_pipeline import (
     DataIngestionPipeline,
 )
 from src.pipeline.part_a_runner import run_part_a
+from src.pipeline.part_b_runner import run_part_b
 
 __all__ = [
     "load_all_data",
@@ -16,4 +17,5 @@ __all__ = [
     "DataIngestionConfig",
     "DataIngestionPipeline",
     "run_part_a",
+    "run_part_b",
 ]

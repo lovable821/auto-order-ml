@@ -35,7 +35,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--part-a",
         action="store_true",
-        help="Run Part A: demand forecast for tomorrow (store×SKU)",
+        help="Run Part A: demand forecast for tomorrow (store x SKU)",
+    )
+    parser.add_argument(
+        "--part-b",
+        action="store_true",
+        help="Run Part B: order quantity for tomorrow",
     )
     parser.add_argument(
         "--config",
@@ -108,6 +113,26 @@ def run_part_a_cli(config_path: str) -> None:
     print(result["predictions"].to_string(index=False))
 
 
+def run_part_b_cli(config_path: str) -> None:
+    """Run Part B: order quantity for tomorrow."""
+    import logging
+    from src.pipeline.part_b_runner import run_part_b
+    from src.pipeline.data_ingestion_pipeline import DataIngestionConfig
+
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s [%(name)s] %(message)s")
+    print("[Part B] Order optimization for tomorrow")
+    root = Path(config_path).resolve().parent.parent
+    cfg = DataIngestionConfig.from_yaml(config_path)
+    if not cfg.data_path or not (root / cfg.data_path).exists():
+        cfg.data_path = root / "data_sample"
+    result = run_part_b(config=cfg)
+    if result["orders"].empty:
+        print("[Part B] No orders (no forecasts)")
+        return
+    print("\n[Part B] Recommended order quantities:")
+    print(result["orders"].to_string(index=False))
+
+
 def main() -> int:
     """Main entrypoint."""
     args = parse_args()
@@ -119,6 +144,8 @@ def main() -> int:
         run_train(config_path)
     elif args.part_a:
         run_part_a_cli(config_path)
+    elif args.part_b:
+        run_part_b_cli(config_path)
     else:
         run_pipeline(config_path)
 
