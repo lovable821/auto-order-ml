@@ -8,6 +8,7 @@ pyyaml>=6.0
 prophet>=1.1
 statsmodels>=0.14.0
 xgboost>=2.0.0
+lightgbm>=4.0.0
 
 # API
 fastapi>=0.104.0

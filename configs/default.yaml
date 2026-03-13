@@ -1,9 +1,12 @@
 # Retail Demand Forecasting & Auto-Order System - Default Configuration
+# Forecasto API: api.forecasto.ru
 
 pipeline:
   data_path: "data/raw"
   output_path: "data/processed"
   batch_size: 1000
+  # Forecasto sales API payload keys (if 422, try: startDate/endDate, dateFrom/dateTo)
+  sales_payload_keys: ["start_date", "end_date"]
 
 features:
   lookback_days: 30

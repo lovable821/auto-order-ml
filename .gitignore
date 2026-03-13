@@ -14,6 +14,9 @@ env/
 data/
 *.csv
 *.parquet
+# Keep sample data for pipeline (must follow *.csv)
+!data_sample/
+!data_sample/*.csv
 *.db
 *.sqlite
 

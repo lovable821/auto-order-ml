@@ -2,7 +2,7 @@
 
 import pytest
 import pandas as pd
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 from src.api.forecasto_client import ForecastoClient, ForecastoAPIError
 
@@ -14,10 +14,10 @@ def client() -> ForecastoClient:
 
 
 def test_client_initialization():
-    """Verify client initializes with token."""
+    """Verify client initializes with token (sent in body per API spec)."""
     c = ForecastoClient(token="my-token")
     assert c._token == "my-token"
-    assert "Bearer my-token" in c._session.headers["Authorization"]
+    assert "Content-Type" in c._session.headers
 
 
 def test_client_configurable_base_url():
@@ -36,9 +36,11 @@ def test_get_sales_returns_dataframe(mock_request: Mock, client: ForecastoClient
     assert isinstance(df, pd.DataFrame)
     assert len(df) == 1
     assert "product_id" in df.columns
-    mock_request.assert_called_once_with(
-        "GET", "/sales", params={"start_date": "01.01.2025", "end_date": "01.03.2026"}
-    )
+    mock_request.assert_called_once()
+    call_args = mock_request.call_args
+    assert call_args[0][:2] == ("POST", "/sales")
+    assert call_args[1]["json"]["START_DATE"] == "01.01.2025"
+    assert call_args[1]["json"]["FINISH_DATE"] == "01.03.2026"
 
 
 @patch("src.api.forecasto_client.ForecastoClient._request")
@@ -47,7 +49,9 @@ def test_get_inventory_returns_dataframe(mock_request: Mock, client: ForecastoCl
     mock_request.return_value = [{"product_id": "P1", "quantity": 50}]
     df = client.get_inventory("01.03.2026")
     assert isinstance(df, pd.DataFrame)
-    mock_request.assert_called_once_with("GET", "/inventory", params={"date": "01.03.2026"})
+    mock_request.assert_called_once_with(
+        "POST", "/inventory/stock", json={"token": ANY, "Date": "01.03.2026"}
+    )
 
 
 @patch("src.api.forecasto_client.ForecastoClient._request")
@@ -56,7 +60,9 @@ def test_get_products_returns_dataframe(mock_request: Mock, client: ForecastoCli
     mock_request.return_value = [{"product_id": "P1", "name": "Product 1"}]
     df = client.get_products()
     assert isinstance(df, pd.DataFrame)
-    mock_request.assert_called_once_with("GET", "/products")
+    mock_request.assert_called_once_with(
+        "POST", "/backend/delivery_info/api/v1/GetAll", json={"token": ANY}
+    )
 
 
 @patch("src.api.forecasto_client.ForecastoClient._request")
@@ -65,7 +71,9 @@ def test_get_losses_returns_dataframe(mock_request: Mock, client: ForecastoClien
     mock_request.return_value = [{"product_id": "P1", "quantity": 2, "reason": "expired"}]
     df = client.get_losses("01.03.2026")
     assert isinstance(df, pd.DataFrame)
-    mock_request.assert_called_once_with("GET", "/losses", params={"date": "01.03.2026"})
+    mock_request.assert_called_once_with(
+        "POST", "/loss/getall", json={"token": ANY, "Date": "01.03.2026"}
+    )
 
 
 @patch("src.api.forecasto_client.ForecastoClient._request")
