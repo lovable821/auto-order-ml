@@ -1,8 +1,4 @@
-"""
-ForecastAPI client - production-ready client for forecastapi.com.
-
-ForecastAPI generates forecasts from time series data (POST /forecast).
-Use this for demand forecasting with real API responses.
+"""ForecastAPI client for forecastapi.com.
 
 Usage:
     from src.api.forecastapi_client import ForecastAPIClient, get_forecast_token

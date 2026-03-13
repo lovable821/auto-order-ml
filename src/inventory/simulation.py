@@ -1,9 +1,4 @@
-"""
-Inventory simulation engine for retail auto-replenishment.
-
-Simulates inventory behavior over time using predicted demand and ordering policies.
-Demonstrates how an ML-driven ordering policy performs in realistic retail conditions.
-"""
+"""Inventory simulation - FIFO stock, expiration, order policy."""
 
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional, Union

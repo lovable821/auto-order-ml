@@ -1,8 +1,4 @@
-"""
-Visualization utilities for demand forecasting and inventory simulation.
-
-Produces clear charts suitable for technical reports.
-"""
+"""Charts for forecast evaluation and inventory simulation."""
 
 from pathlib import Path
 from typing import Optional, Union

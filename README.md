@@ -1,86 +1,82 @@
-# Retail Demand Forecasting & Auto-Order System
+# Auto-Order MVP – Retail Demand Forecasting
 
-A production-ready Python ML project for retail demand forecasting and automated reordering.
-
-## Project Structure
-
-```
-auto-order-ml/
-├── src/
-│   ├── api/          # REST endpoints, request/response handling
-│   ├── pipeline/     # Data ingestion, preprocessing, orchestration
-│   ├── features/     # Feature engineering, feature store
-│   ├── models/       # Demand forecasting models, training
-│   ├── inventory/    # Stock management, order logic
-│   └── policy/       # Ordering policies, business rules
-├── configs/          # YAML configuration files
-├── notebooks/        # Jupyter notebooks for exploration
-├── tests/            # Test suite
-├── main.py           # Entrypoint
-├── requirements.txt
-├── Dockerfile
-└── README.md
-```
+MVP for automated ordering: demand forecast (Part A), order quantity (Part B), and dynamic policy (Part C).
 
 ## Setup
 
 ```bash
-# Create virtual environment
 python -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-# or: .venv\Scripts\activate  # Windows
-
-# Install dependencies
+.venv\Scripts\activate   # Windows
 pip install -r requirements.txt
-
-# Copy and configure environment
-cp .env.example .env
+cp .env.example .env    # Add FORECASTO_TOKEN for API access
 ```
 
 ## Usage
 
 ```bash
-# Run full pipeline (forecast + auto-orders)
+# Full pipeline (ingestion → forecast → orders → simulation)
 python main.py
 
-# Train models only
+# Part A: demand forecast for tomorrow
+python main.py --part-a
+
+# Part B: order quantity for tomorrow
+python main.py --part-b
+python main.py --part-b --policy waste_first   # service_first | waste_first | balanced
+
+# Training only
 python main.py --train
 
-# Start REST API
-python main.py --api
-# or: uvicorn src.api.app:app --reload
+# Inventory simulation demo
+python main.py --simulate
+
+# Generate charts
+python main.py --visualize
 ```
 
 ## Configuration
 
-Edit `configs/default.yaml` to adjust:
+Edit `configs/default.yaml`:
 
-- Pipeline paths and batch size
-- Feature lookback and target column
-- Model type (prophet, arima, xgboost)
-- Inventory safety stock and lead time
-- Ordering policy rules
+- `data_source`: "csv" or "api"
+- `pipeline.data_path`: path to data (default: data_sample)
+- `policy.policy_mode`: service_first | waste_first | balanced
+- `reproducibility.random_seed`: for reproducibility
 
-## Testing
+## Project Structure
 
-```bash
-pytest tests/ -v
-pytest tests/ --cov=src --cov-report=html
+```
+src/
+  api/          # Forecasto API client (api.forecasto.ru)
+  pipeline/     # Orchestrator, stages, ingestion
+  features/     # Feature engineering
+  models/       # LightGBM forecaster, metrics
+  inventory/    # Order optimizer, simulation
+  policy/       # OrderPolicy, PolicyMode
+  evaluation/   # Visualization
+configs/        # YAML config
+data_sample/    # Sample CSV data
 ```
 
 ## Docker
 
 ```bash
-docker build -t auto-order-ml .
-docker run -p 8000:8000 auto-order-ml
+docker build -t auto-order-mvp .
+docker run auto-order-mvp
 ```
 
-## Architecture
+CPU only. No GPU required.
 
-- **Clean architecture**: domain logic isolated from I/O and frameworks
-- **Modular design**: each module has a single responsibility
-- **Config-driven**: behavior controlled via YAML configs
+## Tests
 
-## License
+```bash
+pytest tests/ -v
+```
 
-Proprietary.
+## Assignment Parts
+
+| Part | Description |
+|------|-------------|
+| A | Demand forecast for tomorrow (store × SKU), WAPE/Bias metrics |
+| B | Order quantity from forecast + stock + expiration |
+| C | Policy modes: service-first, waste-first, balanced |

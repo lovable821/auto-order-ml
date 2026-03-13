@@ -1,34 +1,72 @@
-# Retail Demand Forecasting & Auto-Order System - Default Configuration
-# Forecasto API: api.forecasto.ru
+# Auto-Order MVP - Default config
+# data_source: "csv" or "api"
+data_source: "csv"
 
 pipeline:
-  data_path: "data/raw"
+  data_path: "data_sample"
   output_path: "data/processed"
   batch_size: 1000
-  # Forecasto sales API payload keys (if 422, try: startDate/endDate, dateFrom/dateTo)
   sales_payload_keys: ["start_date", "end_date"]
 
+# Stage 2: Data cleaning
+preprocessing:
+  remove_outliers: true
+  fill_missing_dates: false
+  outlier_method: "iqr"
+  outlier_factor: 1.5
+
+# Stage 4: Censored demand correction
+censoring:
+  enable: true
+  correction_method: "flag_only"  # flag_only | exclude_censored | impute_rolling
+
+# Stage 3: Feature engineering
 features:
   lookback_days: 30
   target_column: "demand"
   categorical_cols: ["product_id", "store_id", "category"]
+  lag_days: [1, 2, 3]
+  rolling_windows: [3, 6]
 
+# Stage 5: Model training
 models:
-  type: "prophet"  # prophet, arima, xgboost
+  type: "lightgbm"
   train_test_split: 0.8
   retrain_interval_days: 7
+  lightgbm:
+    n_estimators: 100
+    max_depth: 4
+    min_child_samples: 2
+    min_data_in_leaf: 2
 
+# Stage 8: Inventory (order optimization + simulation)
 inventory:
   safety_stock_days: 7
-  lead_time_days: 3
+  lead_time_days: 0
+  expiration_days: 7
   reorder_point_multiplier: 1.2
 
+# Stage 7: Policy adjustment
 policy:
   min_order_quantity: 1
   max_order_quantity: 1000
   round_to_pallet: false
-  # Part C: service_first | waste_first | balanced
-  policy_mode: "balanced"
+  pallet_size: 48
+  policy_mode: "balanced"  # service_first | waste_first | balanced
+
+# Stage 9: Inventory simulation
+simulation:
+  enable: true
+  initial_stock: 50
+
+# Reproducibility
+reproducibility:
+  random_seed: 42
+
+# Logging
+logging:
+  level: "INFO"
+  log_file: null  # Set to "logs/pipeline.log" for file logging
 
 api:
   host: "0.0.0.0"

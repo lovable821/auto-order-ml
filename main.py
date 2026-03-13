@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """
-Retail Demand Forecasting & Auto-Order System - Entrypoint.
+Retail Demand Forecasting & Auto-Order System.
 
 Usage:
-    python main.py                    # Run pipeline (forecast + orders)
+    python main.py                    # Run full pipeline (ingestion -> simulation)
     python main.py --api              # Start REST API server
-    python main.py --train            # Train models only
+    python main.py --train            # Train models only (runs pipeline through training)
+    python main.py --part-a           # Part A: demand forecast for tomorrow
+    python main.py --part-b           # Part B: order quantity for tomorrow
+    python main.py --simulate         # Inventory simulation demo
+    python main.py --visualize        # Generate visualization charts
 """
 
 import argparse
@@ -30,7 +34,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--train",
         action="store_true",
-        help="Run model training pipeline only",
+        help="Run model training pipeline only (through forecast)",
     )
     parser.add_argument(
         "--part-a",
@@ -68,122 +72,167 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def run_pipeline(config_path: str) -> None:
-    """Execute full pipeline: load data from api.forecasto.ru -> ForecastAPI (real) -> forecasts."""
-    from src.pipeline.forecast_runner import run_forecast_pipeline
+def _setup_logging(config_path: str) -> None:
+    """Configure structured logging from config."""
+    from src.config.logging_config import setup_logging
 
-    print(f"[Pipeline] Running with config: {config_path}")
-    print("[Pipeline] 1. Load data from api.forecasto.ru (sales, inventory, products, losses)")
-    print("[Pipeline] 2. Call ForecastAPI for real forecasts")
     try:
-        results = run_forecast_pipeline(
-            periods=6,
-            frequency="M",
-            data_source="api",
-            start_date="01.01.2024",
-            end_date="31.12.2024",
+        import yaml
+        path = Path(config_path)
+        if not path.is_absolute():
+            path = PROJECT_ROOT / path
+        with open(path) as f:
+            cfg = yaml.safe_load(f) or {}
+        log_cfg = cfg.get("logging", {})
+        setup_logging(
+            level=log_cfg.get("level", "INFO"),
+            log_file=log_cfg.get("log_file"),
         )
-        for sku, res in results.items():
-            forecasts = res.get("result", {}).get("forecasts", [])
-            print(f"\n[Pipeline] {sku}: {len(forecasts)} forecast periods")
-            for f in forecasts[:3]:
-                print(f"  {f.get('date')}: {f.get('forecast', f.get('value')):.1f}")
-            if len(forecasts) > 3:
-                print(f"  ... and {len(forecasts) - 3} more")
-        print("\n[Pipeline] Done. Real data from ForecastAPI.")
-    except ValueError as e:
-        print(f"[Pipeline] Error: {e}")
-        print("Add FORECAST_API_TOKEN or Authorization=Bearer <token> to .env")
+    except Exception:
+        setup_logging(level="INFO")
 
 
-def run_api(config_path: str) -> None:
+def run_full_pipeline(config_path: str) -> int:
+    """Run full pipeline: ingestion through simulation."""
+    from src.pipeline.orchestrator import run_pipeline
+
+    config_full_path = str(PROJECT_ROOT / config_path)
+    ctx = run_pipeline(config_path=config_full_path)
+
+    # Print summary
+    if ctx.model is not None:
+        print("\n[Pipeline] Model trained successfully")
+        if ctx.metrics:
+            print(f"  WAPE: {ctx.metrics.get('wape', 0):.4f}")
+            print(f"  Bias: {ctx.metrics.get('bias', 0):.4f}")
+
+    if ctx.forecasts is not None and not ctx.forecasts.empty:
+        print("\n[Pipeline] Tomorrow's predicted demand:")
+        print(ctx.forecasts.to_string(index=False))
+
+    if ctx.orders is not None and not ctx.orders.empty:
+        print("\n[Pipeline] Recommended order quantities:")
+        print(ctx.orders.to_string(index=False))
+
+    if ctx.simulation_report is not None:
+        print("\n[Pipeline] Simulation metrics:")
+        for k, v in ctx.simulation_report.metrics.items():
+            if isinstance(v, float):
+                print(f"  {k}: {v:.2f}")
+            else:
+                print(f"  {k}: {v}")
+
+    print("\n[Pipeline] Done.")
+    return 0
+
+
+def run_api(config_path: str) -> int:
     """Start the REST API server."""
-    # Placeholder - wire to api module
     print(f"[API] Starting server with config: {config_path}")
     print("[API] Use: uvicorn src.api.app:app --reload")
+    return 0
 
 
-def run_train(config_path: str) -> None:
-    """Run model training only."""
-    print(f"[Train] Training models with config: {config_path}")
+def run_train(config_path: str) -> int:
+    """Run model training only (pipeline through forecast generation)."""
+    from src.pipeline.orchestrator import run_pipeline
+
+    config_full_path = str(PROJECT_ROOT / config_path)
+    ctx = run_pipeline(config_path=config_full_path)
+
+    if ctx.model is None:
+        print("[Train] No model trained (insufficient data)")
+        return 1
+
+    print(f"[Train] WAPE: {ctx.metrics.get('wape', 0):.4f}")
+    print(f"[Train] Bias: {ctx.metrics.get('bias', 0):.4f}")
     print("[Train] Done.")
+    return 0
 
 
-def run_part_a_cli(config_path: str) -> None:
+def run_part_a_cli(config_path: str) -> int:
     """Run Part A: demand forecast for tomorrow."""
-    from src.pipeline.part_a_runner import run_part_a
-    from src.pipeline.data_ingestion_pipeline import DataIngestionConfig
+    from src.pipeline.orchestrator import run_pipeline
 
-    print("[Part A] Demand forecast for tomorrow (store x SKU)")
-    from pathlib import Path
-    root = Path(config_path).resolve().parent.parent
-    cfg = DataIngestionConfig.from_yaml(config_path)
-    if not cfg.data_path or not (root / cfg.data_path).exists():
-        cfg.data_path = root / "data_sample"
-    result = run_part_a(config=cfg)
-    if result["model"] is None:
+    config_full_path = str(PROJECT_ROOT / config_path)
+    ctx = run_pipeline(config_path=config_full_path)
+
+    if ctx.model is None:
         print("[Part A] No model trained (insufficient data)")
-        return
-    print(f"[Part A] WAPE: {result['metrics']['wape']:.4f}")
-    print(f"[Part A] Bias: {result['metrics']['bias']:.4f}")
+        return 1
+
+    print(f"[Part A] WAPE: {ctx.metrics.get('wape', 0):.4f}")
+    print(f"[Part A] Bias: {ctx.metrics.get('bias', 0):.4f}")
     print("\n[Part A] Tomorrow's predicted demand:")
-    print(result["predictions"].to_string(index=False))
+    print(ctx.forecasts.to_string(index=False))
+    return 0
 
 
-def run_part_b_cli(config_path: str, policy_mode: str = "balanced") -> None:
+def run_part_b_cli(config_path: str, policy_mode: str = "balanced") -> int:
     """Run Part B: order quantity for tomorrow."""
-    import logging
-    from src.pipeline.part_b_runner import run_part_b
-    from src.pipeline.data_ingestion_pipeline import DataIngestionConfig
+    from src.pipeline.orchestrator import run_pipeline
 
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s [%(name)s] %(message)s")
-    print(f"[Part B] Order optimization for tomorrow (policy={policy_mode})")
-    root = Path(config_path).resolve().parent.parent
-    cfg = DataIngestionConfig.from_yaml(config_path)
-    if not cfg.data_path or not (root / cfg.data_path).exists():
-        cfg.data_path = root / "data_sample"
-    result = run_part_b(config=cfg, policy_mode=policy_mode)
-    if result["orders"].empty:
+    config_full_path = str(PROJECT_ROOT / config_path)
+    ctx = run_pipeline(
+        config_path=config_full_path,
+        config_overrides={"policy": {"policy_mode": policy_mode}},
+    )
+
+    if ctx.orders is None or ctx.orders.empty:
         print("[Part B] No orders (no forecasts)")
-        return
+        return 1
+
     print("\n[Part B] Recommended order quantities:")
-    print(result["orders"].to_string(index=False))
+    print(ctx.orders.to_string(index=False))
+    return 0
 
 
-def run_simulation_cli() -> None:
+def run_simulation_cli() -> int:
     """Run inventory simulation demo."""
-    from scripts.run_simulation import main as sim_main
-    sim_main()
+    import sys
+
+    orig_argv = sys.argv.copy()
+    sys.argv = [orig_argv[0]]  # run_simulation has its own --plot, --output
+    try:
+        from scripts.run_simulation import main as sim_main
+        sim_main()
+    finally:
+        sys.argv = orig_argv
+    return 0
 
 
-def run_visualize_cli() -> None:
+def run_visualize_cli() -> int:
     """Generate all visualization charts."""
     import subprocess
+
     script = PROJECT_ROOT / "scripts" / "run_visualizations.py"
     subprocess.run([sys.executable, str(script)], check=True)
+    return 0
 
 
 def main() -> int:
     """Main entrypoint."""
     args = parse_args()
-    config_path = str(PROJECT_ROOT / args.config)
+    config_path = args.config
+    if not Path(config_path).is_absolute():
+        config_path = str(PROJECT_ROOT / config_path)
+
+    _setup_logging(config_path)
 
     if args.api:
-        run_api(config_path)
-    elif args.train:
-        run_train(config_path)
-    elif args.part_a:
-        run_part_a_cli(config_path)
-    elif args.part_b:
-        run_part_b_cli(config_path, policy_mode=args.policy)
-    elif args.simulate:
-        run_simulation_cli()
-    elif args.visualize:
-        run_visualize_cli()
-    else:
-        run_pipeline(config_path)
+        return run_api(config_path)
+    if args.train:
+        return run_train(config_path)
+    if args.part_a:
+        return run_part_a_cli(config_path)
+    if args.part_b:
+        return run_part_b_cli(config_path, policy_mode=args.policy)
+    if args.simulate:
+        return run_simulation_cli()
+    if args.visualize:
+        return run_visualize_cli()
 
-    return 0
+    return run_full_pipeline(config_path)
 
 
 if __name__ == "__main__":

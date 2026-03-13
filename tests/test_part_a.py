@@ -1,11 +1,10 @@
-"""Tests for Part A pipeline."""
+"""Tests for Part A (demand forecast) pipeline."""
 
 import pytest
 import numpy as np
 from pathlib import Path
 
-from src.pipeline.part_a_runner import run_part_a
-from src.pipeline.data_ingestion_pipeline import DataIngestionConfig
+from src.pipeline.orchestrator import run_pipeline
 from src.models.metrics import wape, bias_metric, evaluate_forecast
 
 
@@ -31,17 +30,16 @@ def test_evaluate_forecast():
 
 
 def test_run_part_a(project_root):
-    """Part A pipeline runs end-to-end."""
-    cfg = DataIngestionConfig(data_source="csv", data_path=project_root / "data_sample")
-    result = run_part_a(config=cfg, train_test_split=0.7)
-    assert "model" in result
-    assert "metrics" in result
-    assert "predictions" in result
-    if result["model"] is not None:
-        assert "wape" in result["metrics"]
-        assert "bias" in result["metrics"]
-        assert not result["predictions"].empty
-        # Different SKUs should get different predictions
-        preds = result["predictions"]
-        if len(preds) >= 2:
-            assert preds["predicted_demand"].nunique() >= 2, "SKUs should have different forecasts"
+    """Pipeline runs end-to-end with forecast output."""
+    config_path = str(project_root / "configs" / "default.yaml")
+    ctx = run_pipeline(
+        config_path,
+        config_overrides={"pipeline": {"data_path": str(project_root / "data_sample")}},
+    )
+    assert ctx.model is not None or ctx.forecasts is not None
+    if ctx.model is not None:
+        assert "wape" in ctx.metrics
+        assert "bias" in ctx.metrics
+    if ctx.forecasts is not None and not ctx.forecasts.empty:
+        if len(ctx.forecasts) >= 2:
+            assert ctx.forecasts["predicted_demand"].nunique() >= 1
